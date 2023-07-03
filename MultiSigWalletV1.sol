@@ -61,10 +61,23 @@ contract MultiSigWallet {
         transactions[txIndex].signatures[msg.sender] = true;
     }
 
+    function getNumSignatures(Transaction storage _transaction) private view returns (uint) {
+        uint count = 0;
+        for (uint i = 0; i < owners.length; i++) {
+            if (_transaction.signatures[owners[i]]) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     function executeTransaction(uint txIndex) public {
         require(txIndex == transactions.length, "Invalid number");
         require(!transactions[txIndex].executed, "Already executed");
 
-        transactions[txIndex].executed = true;
+        Transaction storage transaction = transactions[txIndex];
+        require(getNumSignatures(transaction) == totalrequiredsignature, "Not enough sign");
+
+        transaction.executed = true;
     }
 }
