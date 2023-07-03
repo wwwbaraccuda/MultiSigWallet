@@ -25,6 +25,18 @@ contract MultiSigWallet {
         totalrequiredsignature = _totalrequiredsignature;
     }
 
+    modifier ownerOnly() {
+        bool isOwner = false;
+        for (uint i = 0; i < owners.length; i++) {
+            if (msg.sender == owners[i]) {
+                isOwner = true;
+                break;
+            }
+        }
+        require(isOwner, "Only owners are allowed");
+        _;
+    }
+
     function submitTransaction(address _to, uint _value, bytes memory _data) public {
         uint txIndex = transactions.length;
 
@@ -37,7 +49,7 @@ contract MultiSigWallet {
         transaction.executed = false;
     }
 
-    function getTransaction(uint txIndex) public view returns(address _to, uint _value, bytes memory _data) {
+    function getTransaction(uint txIndex) public ownerOnly view returns(address _to, uint _value, bytes memory _data) {
         Transaction storage transaction = transactions[txIndex];
         return(transaction.to, transaction.value, transaction.data);
     }
