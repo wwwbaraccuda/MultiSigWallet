@@ -41,4 +41,18 @@ contract MultiSigWallet {
         Transaction storage transaction = transactions[txIndex];
         return(transaction.to, transaction.value, transaction.data);
     }
+
+    function signTransaction(uint txIndex) public {
+        require(txIndex == transactions.length, "Invalid number");
+        require(!transactions[txIndex].signatures[msg.sender], "Already signed");
+
+        transactions[txIndex].signatures[msg.sender] = true;
+    }
+
+    function executeTransaction(uint txIndex) public {
+        require(txIndex == transactions.length, "Invalid number");
+        require(!transactions[txIndex].executed, "Already executed");
+
+        transactions[txIndex].executed = true;
+    }
 }
