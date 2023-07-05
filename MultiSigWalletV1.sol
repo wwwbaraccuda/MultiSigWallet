@@ -10,7 +10,6 @@ contract MultiSigWallet {
     struct Transaction {
         address to;
         uint value;
-        bytes data;
         bool executed;
     }
 
@@ -40,11 +39,11 @@ contract MultiSigWallet {
         _;
     }
 
-    function submitTransaction(address _to, bytes memory _data) public ownerOnly payable{
+    function submitTransaction(address _to) public ownerOnly payable{
         require(_to!=address(0), "Invalid Receiver's Address");
         require(msg.value>0, "Input amount");
         uint txIndex = transactions.length;
-        transactions.push(Transaction({to: _to, value: msg.value, data: _data, executed: false}));
+        transactions.push(Transaction({to: _to, value: msg.value, executed: false}));
         emit TransactionSubmitted(txIndex, msg.sender, _to, msg.value);
     }
 
@@ -52,9 +51,9 @@ contract MultiSigWallet {
         return owners;
     }
 
-    function getTransaction(uint txIndex) public ownerOnly view returns(address _to, uint _value, bytes memory _data) {
+    function getTransaction(uint txIndex) public ownerOnly view returns(address _to, uint _value) {
         Transaction storage transaction = transactions[txIndex];
-        return(transaction.to, transaction.value, transaction.data);
+        return(transaction.to, transaction.value);
     }
 
     function confirmTransaction(uint txIndex) public ownerOnly {
@@ -62,12 +61,14 @@ contract MultiSigWallet {
         require(!isConfirmed[txIndex][msg.sender], "Already confirmed");
         isConfirmed[txIndex][msg.sender] = true;
         emit TransactionSigned(txIndex);
+        if(isTransactionConfirmed(txIndex)){
+           executeTransaction(txIndex);
+       }
     }
 
-    function isTransactionConfirmed(uint txIndex) public view returns (bool) {
+    function isTransactionConfirmed(uint txIndex) internal view returns (bool) {
         require(txIndex < transactions.length, "Invalid number");
         uint count=0;
-
         for (uint i = 0; i < owners.length; i++) {
             if (isConfirmed[txIndex][owners[i]]) {
                 count++;
@@ -76,7 +77,7 @@ contract MultiSigWallet {
         return count>=totalRequiredConfimation;
     }
 
-    function executeTransaction(uint txIndex) public payable ownerOnly {
+    function executeTransaction(uint txIndex) internal ownerOnly {
         require(txIndex < transactions.length, "Invalid number");
         require(!transactions[txIndex].executed, "Already executed");
         (bool success,) = transactions[txIndex].to.call{value: transactions[txIndex].value}("");
